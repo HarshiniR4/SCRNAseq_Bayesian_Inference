@@ -128,11 +128,6 @@ See `results/posterior.nc` (ArviZ-compatible) and the interactive **HTML dashboa
 
 ---
 
-## Contributing & license
-
-* Pull requests welcome—new QC modules, inference engines, or docs fixes.
-* Open issues for questions, bugs, or feature requests.
-
 Licensed under the **MIT License**—see [`LICENSE`](LICENSE).
 
 ---
