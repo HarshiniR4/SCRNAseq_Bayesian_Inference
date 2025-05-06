@@ -42,30 +42,60 @@ conda activate scrnaseq-bayes
 
 ## Repository layout
 
-| Path / file               | Purpose                                         |
-| ------------------------- | ----------------------------------------------- |
-| **docs/**                 | Narrative docs & figures (see map below)        |
-| **src/** (`bayes_scran/`) | Re-usable Python code, CLI entry-points         |
-| **src/notebooks/**        | Exploratory notebooks (small subsets)           |
-| **Snakefile** + `config/` | Reproducible Snakemake workflow                 |
-| **environment.yml**       | Conda spec (PyMC 5, Scanpy 1.10, Snakemake ≥ 8) |
-| **data/raw/** *(ignored)* | Place raw GSE98969 archives here                |
-| **results/**              | Posterior draws, metrics, HTML dashboard        |
-| **LICENSE**               | MIT                                             |
+SCRNAseq_Bayesian_Inference/
+├── README.md
+├── LICENSE
+├── environment.yml
+├── Snakefile
+│
+├── docs/
+│   ├── 00_overview.md
+│   ├── 01_datasets.md
+│   ├── 02_data_prep.md
+│   ├── 03_model_spec.md          ← DAG lives here
+│   ├── 04_inference_workflow.md
+│   ├── 05_validation.md
+│   ├── 06_results.md
+│   ├── 99_troubleshooting.md
+│   └── figures/
+│        ├── dag.svg
+│        └── …
+│
+├── notebooks/
+│   ├── preprocessing/
+│   │   ├── extract_files.ipynb
+│   │   └── combine_adata.ipynb
+│   ├── inference/
+│   │   ├── Bayesian_Inference_for_AnnData.ipynb
+│   │   └── VI_trace_demo.ipynb
+│   └── exploration/
+│        └── scRNASeq_analysis.ipynb
+│
+├── src/
+│   └── bayes_scran/
+│        ├── __init__.py
+│        ├── io_zarr.py
+│        ├── qc.py
+│        ├── model.py
+│        └── cli.py
+│
+├── data/          # <ignored> raw MTX / FASTQ
+└── results/       # <ignored> posterior draws, HTML reports
 
 ---
 
-## Documentation map
+### Documentation map
 
-| Doc file                            | Synopsis                                      |
-| ----------------------------------- | --------------------------------------------- |
-| **`docs/00_overview.md`**           | One-page problem statement & flowchart        |
-| **`docs/01_data-prep.md`**          | Extraction, QC thresholds, Zarr chunking      |
-| **`docs/02_model-spec.md`**         | Full maths (likelihood, priors, DAG)          |
-| **`docs/03_inference-workflow.md`** | ADVI settings, GPU/CPU tips                   |
-| **`docs/04_validation.md`**         | ELBO checks, posterior predictive diagnostics |
-| **`docs/05_results.md`**            | Runtime, memory, key plots                    |
-| **`docs/06_troubleshooting.md`**    | lib64 clashes, KaTeX, Snakemake FAQs          |
+| Doc file | Synopsis |
+| -------- | -------- |
+| **`docs/00_overview.md`** | Problem statement & high-level flowchart |
+| **`docs/01_datasets.md`** | Description of raw GEO datasets & metadata |
+| **`docs/02_data_prep.md`** | Extraction → QC → Zarr chunking |
+| **`docs/03_model_spec.md`** | Full likelihood, priors & **DAG** |
+| **`docs/04_inference_workflow.md`** | ADVI settings, PyTensor flags |
+| **`docs/05_validation.md`** | ELBO, PPC, simulation recovery |
+| **`docs/06_results.md`** | Runtime, memory, key posterior plots |
+| **`docs/99_troubleshooting.md`** | lib64 clashes, KaTeX, Snakemake tips |
 
 ---
 
