@@ -100,6 +100,7 @@ All docs live in **`docs/`** and are rendered natively by GitHub for quick brows
 | **GSE123025\_Single\_myeloid\_1922\_cells\_processed\_data.csv.gz**       | Example processed matrix                                   |
 
 *(Any large Zarr, `.h5ad`, or `.nc` artefacts should live in `results/` and be git-ignored.)*
+
 ---
 ## Mathematical model (mini version)
 
