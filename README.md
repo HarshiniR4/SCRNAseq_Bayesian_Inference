@@ -6,16 +6,16 @@
 
 ---
 
-## Project snapshot
+## 1 Project at a glance
 
-* **Data** 10× Chromium v3 counts (accession **GSE98969**): **186 224 cells × 39 241 genes** after QC  
-* **Goal** Estimate gene-wise means & dispersions with full Bayesian uncertainty  
-* **Model** Hierarchical Negative-Binomial with covariates and latent factors  
-* **Inference engine** PyMC 5 + ADVI (mini-batch ≈ 128 cells × 128 genes)  
-* **Peak RAM** ≈ 38 GB (CPU)  **Peak VRAM** 5 GB (A40)  
-* **Run-time (full data)** ≈ 3 h 45 m on a single A40; ≈ 6 h 20 m CPU-only  
-* **Outputs** Posterior draws (`*.nc`), QC report, HTML results dashboard
-
+| Item | Value |
+|------|-------|
+| **Raw data** | GEO accession **GSE98969** (10× Chromium v3) |
+| **Post-QC matrix** | 186 224 cells × 39 241 genes |
+| **Model** | Hierarchical Negative-Binomial with covariates & latent factors |
+| **Inference** | *Stochastic Variational Inference* (ADVI, PyMC 5) |
+| **Peak RAM / VRAM** | 38 GB RAM · 5 GB (A40) |
+| **Full-run wall-time** | ≈ 3 h 45 m (single A40) |
 ---
 
 ## Table of contents
@@ -40,47 +40,23 @@ conda activate scrnaseq-bayes
 ```
 ---
 
-## Repository layout
+## 3 Repository contents
 
-SCRNAseq_Bayesian_Inference/
-├── README.md
-├── LICENSE
-├── environment.yml
-├── Snakefile
-│
-├── docs/
-│   ├── 00_overview.md
-│   ├── 01_datasets.md
-│   ├── 02_data_prep.md
-│   ├── 03_model_spec.md          ← DAG lives here
-│   ├── 04_inference_workflow.md
-│   ├── 05_validation.md
-│   ├── 06_results.md
-│   ├── 99_troubleshooting.md
-│   └── figures/
-│        ├── dag.svg
-│        └── …
-│
-├── notebooks/
-│   ├── preprocessing/
-│   │   ├── extract_files.ipynb
-│   │   └── combine_adata.ipynb
-│   ├── inference/
-│   │   ├── Bayesian_Inference_for_AnnData.ipynb
-│   │   └── VI_trace_demo.ipynb
-│   └── exploration/
-│        └── scRNASeq_analysis.ipynb
-│
-├── src/
-│   └── bayes_scran/
-│        ├── __init__.py
-│        ├── io_zarr.py
-│        ├── qc.py
-│        ├── model.py
-│        └── cli.py
-│
-├── data/          # <ignored> raw MTX / FASTQ
-└── results/       # <ignored> posterior draws, HTML reports
+| Path / file                                                               | Purpose                                                    |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **docs/Overview Documentation.md**                                        | One-page overview & high-level flowchart                   |
+| **docs/cRNA seq- Datasets .md**                                           | Short descriptions of every GEO / SRA table                |
+| **docs/Detailed Breakdown of *Bayesian Inference of Gene Expression*.md** | Full mathematical model **& DAG**                          |
+| **docs/scRNASeq\_analysis\_documentation.docx**                           | Legacy notes (binary)                                      |
+| **src/extract\_files.ipynb**                                              | Decompress `.tar`/`.gz`, build sparse CSR, attach metadata |
+| **src/combine\_adata.ipynb**                                              | QC filters, gene-union realignment, write Zarr             |
+| **src/Bayesian Inference for Anndata.ipynb**                              | ADVI on the entire dataset                                 |
+| **src/VI\_Trace.ipynb**                                                   | ELBO trace & posterior diagnostics                         |
+| **src/scRNAseq\_analysis.ipynb**                                          | Misc. exploration / plotting                               |
+| **src/GSE* SraRunTable.csv*\*                                             | Sample-level metadata tables                               |
+| **GSE123025\_Single\_myeloid\_1922\_cells\_processed\_data.csv.gz**       | Example processed matrix                                   |
+
+*(Any large Zarr, `.h5ad`, or `.nc` artefacts should live in `results/` and be git-ignored.)*
 
 ---
 
@@ -99,21 +75,22 @@ SCRNAseq_Bayesian_Inference/
 
 ---
 
-## Mathematical model
 
-> Display math renders via GitHub KaTeX (public repos) — blank lines and **safe macros** only.
+## 4 Mathematical model (mini version)
+
+> See *Detailed Breakdown …Gene Expression\_.md* for full derivation and DAG.
 
 ### Likelihood
 
 For cell *i* and gene *g*
 
 $$
-Y_{ig} \sim \mathrm{NegBinomial}\!\bigl(\mu_{ig}, \phi_{g}\bigr),\qquad
-\mu_{ig}=s_i\,\exp(\eta_{ig}).
+Y_{ig} \sim \mathrm{NegBinomial}\!\bigl(\mu_{ig},\phi_{g}\bigr),\qquad
+\mu_{ig}=s_i\,e^{\eta_{ig}}.
 $$
 
 * $s_i$ — library-size factor
-* $\phi_{g}$ — gene-specific inverse dispersion
+* $\phi_g$ — gene-specific inverse dispersion
 
 ### Linear predictor
 
@@ -127,15 +104,13 @@ w_{ig} &\sim \mathcal{N}\!\bigl(0,\sigma_w^{2}\bigr).
 \end{aligned}
 $$
 
-### Hierarchical priors
+### Priors
 
 $$
 \log s_i \sim \mathcal{N}\!\bigl(\mu_s,\sigma_s^{2}\bigr),\qquad
-\beta_{\!\cdot g}\sim\mathcal{N}\!\bigl(0,\sigma_{\beta}^{2} I\bigr),\qquad
-\phi_{g} \sim \mathrm{HalfCauchy}(\gamma).
+\beta_{\!\cdot g}\sim\mathcal{N}\!\bigl(0,\sigma_{\beta}^{2}I\bigr),\qquad
+\phi_g\sim\mathrm{HalfCauchy}(\gamma).
 $$
-
-*A full DAG appears in* `docs/Overview Documentation.md`.
 
 ---
 
