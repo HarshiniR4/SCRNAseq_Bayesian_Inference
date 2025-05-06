@@ -6,7 +6,7 @@
 
 ---
 
-## 1  Purpose and Scope
+## 1.  Purpose and Scope
 
 This document defines the end-to-end workflow, modelling assumptions, and computational requirements for analysing a large scRNA-seq dataset (\~ 186 k cells × 39 k genes) with a **hierarchical Negative-Binomial Bayesian model**. It covers:
 
@@ -17,7 +17,7 @@ This document defines the end-to-end workflow, modelling assumptions, and comput
 
 ---
 
-## 2  Data Landscape and Pre-processing
+## 2.  Data Landscape and Pre-processing
 
 | Attribute                  | Value / Choice                                      | Justification                                                                         |
 | -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -39,46 +39,40 @@ This document defines the end-to-end workflow, modelling assumptions, and comput
 | **QC reporting**       | (sections within notebooks) | Generate HTML violin plots for counts, genes, pct\_mito and save under `reports/qc.html`.            |
 
 ---
+## 3. Statistical Model
 
-## 3  Statistical Model
-
-### 3.1 Likelihood
+#### Likelihood
 
 For cell *i* and gene *g*
 
 $$
-Y_{ig}\;\sim\;\operatorname{NegBinomial}\!\bigl(\mu_{ig},\;\phi_{g}\bigr),\qquad
-\mu_{ig}=s_i\,\exp(\eta_{ig}).
+Y_{ig} \sim \mathrm{NegBinomial}\!\bigl(\mu_{ig}, \phi_{g}\bigr),\qquad
+\mu_{ig} = s_i\,\exp(\eta_{ig}).
 $$
 
-* $s_i$ – library-size factor (cell specific).
-* $\phi_{g}$ – gene-specific inverse dispersion capturing over-dispersion.
-
-### 3.2 Linear Predictor
-
-$$
-\eta_{ig}= 
-\beta_{0g}
-+ \beta_{1g}\,\textsf{condition}_{i}
-+ \gamma_{g}\,\log(\textsf{geneLength}_{g})
-+ w_{ig},
-\quad
-w_{ig}\sim\mathcal{N}(0,\sigma_w^{2}).
-$$
-
-### 3.3 Hierarchical Priors
-
-$$
-\log s_i \sim \mathcal{N}(\mu_s,\sigma_s^2), \qquad
-\beta_{\cdot g}\sim\mathcal{N}(0,\sigma_\beta^2 I), \qquad
-\phi_g \sim \text{HalfCauchy}(\gamma).
-$$
-
-**DAG:** Independent plates over *cells* and *genes* (see Appendix A) allow independent subsampling along either dimension.
+$(s_i\)\,$— library-size factor (cell specific)  
+$(\phi_{g}\)\,$— gene-specific inverse dispersion
 
 ---
 
-## 4  Inference Strategy
+#### Hierarchical Priors
+
+$$
+\log s_i \sim \mathcal{N}\!\bigl(\mu_s, \sigma_s^{2}\bigr),\qquad
+\beta_{\!\cdot g} \sim \mathcal{N}\!\bigl(0, \sigma_{\beta}^{2} I\bigr),\qquad
+\phi_{g} \sim \mathrm{HalfCauchy}(\gamma).
+$$
+
+
+**DAG:** 
+![DAG]()
+
+**Workflow Pipeline**
+![]()
+
+---
+
+## 4.  Inference Strategy
 
 ### 4.1 Why MCMC Was Considered First
 
@@ -109,7 +103,7 @@ $$
 
 ---
 
-## 5  Design Choices and Justification
+## 5.  Design Choices and Justification
 
 | Component            | Design decision                 | Scientific / Operational justification                                    |
 | -------------------- | ------------------------------- | ------------------------------------------------------------------------- |
@@ -122,7 +116,7 @@ $$
 
 ---
 
-## 6  Validation Plan
+## 6.  Validation Plan
 
 1. **ELBO Convergence** – monitor slope; terminate on plateau.
 2. **Posterior Predictive Checks** – compare hold-out mini-batch mean, variance, and zero-fraction against replicated data.
@@ -132,7 +126,7 @@ $$
 
 ---
 
-## 7  Computational Footprint (Full Dataset with SVI)
+## 7.  Computational Footprint (Full Dataset with SVI)
 
 | Metric                   | Value                                       |
 | ------------------------ | ------------------------------------------- |
@@ -144,7 +138,7 @@ $$
 
 ---
 
-## 8  Implementation Artifacts
+## 8.  Implementation Artifacts
 
 | Artifact   | Location / Name                   | Purpose                                        |
 | ---------- | --------------------------------- | ---------------------------------------------- |
@@ -155,7 +149,7 @@ $$
 
 ---
 
-## 9  Future Extensions
+## 9.  Future Extensions
 
 1. **Zero-Inflated NB layer** to model technical drop-outs explicitly.
 2. **Hierarchical cell-type plates** once coarse clustering labels are available.
@@ -165,7 +159,7 @@ $$
 
 ---
 
-## 10  References
+## 10.  References
 
 1. *\<Full citation of reference paper>* — Introduces plate-wise VI for hierarchical NB at million-cell scale.
 2. Salvatier J. *et al.* “Probabilistic Programming in Python with PyMC.” *PeerJ CS* 2016.
@@ -173,16 +167,6 @@ $$
 4. Grün D., van Oudenaarden A. “Design and Analysis of Single-Cell Sequencing Experiments.” *Cell* 2015.
 
 ---
-
-## Appendix A  – Graphical Model (DAG)
-
-*High-resolution SVG located at `figures/dag.svg`.*
-The DAG depicts:
-
-* Plates for **cells** and **genes**.
-* Arrows from size factors $s_i$, covariate effects $\beta_{1g}$, gene-length effect $\gamma_g$, and latent factor $w_{ig}$ to the log-mean $\eta_{ig}$.
-* Separate hyper-priors on $s_i$, $\beta_{\cdot g}$, and $\phi_g$.
-
 ---
 
 ### Change Log
