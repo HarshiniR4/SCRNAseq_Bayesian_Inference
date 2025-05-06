@@ -1,46 +1,76 @@
-# Bayesian Inference for Single-Cell RNA-Seq  
-*A scalable PyMC 5 pipeline with Zarr storage and stochastic variational inference*
+# SCRNAseq\_Bayesian\_Inference
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
----
-
-## 1 Project at a glance
-
-| Item | Value |
-|------|-------|
-| **Raw data** | GEO accession **GSE98969** (10× Chromium v3) |
-| **Post-QC matrix** | 186 224 cells × 39 241 genes |
-| **Model** | Hierarchical Negative-Binomial with covariates & latent factors |
-| **Inference** | *Stochastic Variational Inference* (ADVI, PyMC 5) |
-| **Peak RAM / VRAM** | 38 GB RAM · 5 GB (A40) |
-| **Full-run wall-time** | ≈ 3 h 45 m (single A40) |
----
-
-## Table of contents
-1. [Quick start](#quick-start)  
-2. [Repository layout](#repository-layout)  
-3. [Documentation map](#documentation-map)  
-4. [Mathematical model](#mathematical-model)  
-5. [Results overview](#results-overview)  
-6. [Contributing & license](#contributing--license)
+> **End‑to‑end Bayesian workflow for single‑cell RNA‑seq.**
+> Harmonises six public microglia Alzheimer’s GEO studies and fits a hierarchical Negative‑Binomial model with minibatch variational inference.
 
 ---
 
-## Quick start
+## Table of Contents
 
-```bash
-# clone & set up
-git clone https://github.com/HarshiniR4/SCRNAseq_Bayesian_Inference.git
-cd SCRNAseq_Bayesian_Inference
+1. [Project Overview](#project-overview)
+2. [Data Flow](#data-flow)
+3. [Repository Structure](#repository-structure)
+4. [Installation](#installation)
+5. [Quick Start](#quick-start)
+6. [Detailed Pipeline](#detailed-pipeline)
+7. [Data Management & Integrity](#data-management--integrity)
+8. [Model Details](#model-details)
+9. [Troubleshooting](#troubleshooting)
+10. [Roadmap](#roadmap)
+11. [Citation](#citation)
+12. [License](#license)
 
-conda env create -f environment.yml        # or: mamba env create …
-conda activate scrnaseq-bayes
+---
+
+## Project Overview
+
+This repository assembles **six Alzheimer’s‑related GEO scRNA‑seq datasets** into a single `AnnData` object (≈186 k cells × 39 k genes) and applies a **hierarchical Negative‑Binomial Bayesian model** to discover condition‑specific expression programs.
+
+Key design choices:
+
+* **Streaming extraction** to keep <2 GB RAM during untar/gunzip.
+* **Union‑gene merge** with sparse zero‑padding.
+* **Minibatch ADVI** in **PyMC 5** for tractable Bayesian inference.
+* **Conda‑locked** environments + checksum verification for full reproducibility.
+
+---
+
+## Data Flow
+
+```mermaid
+flowchart LR
+    A[RAW GEO tarballs] --> B{extract_files.ipynb}
+    B --> C[Per‑study .h5ad]
+    C --> D{combine_adata.ipynb}
+    D --> E[Merged AnnData (h5ad)]
+    E --> F{neg_binom.ipynb}
+    F --> G[Posterior trace + PPC]
 ```
+
+* **Raw acquisition** → download `*_RAW.tar` + `SraRunTable.csv`.
+* **Extraction** → stream untar │ gunzip → sparse matrices.
+* **Merge** → outer gene union, QC, write `combined_by_obs.h5ad`.
+* **Model fit** → hierarchical NB with library‑size & gene‑length offsets.
+
 ---
 
-## 3 Repository contents
+## Repository Structure
+
+```text
+SCRNAseq_Bayesian_Inference/
+├── data/                # Git‑ignored artefacts
+│   ├── raw/             # GEO tarballs (+ *.md5)
+│   ├── extracted/       # Plain‑text matrices
+│   ├── qc/              # PNGs + TSVs
+│   └── combined_by_obs.h5ad
+├── docs/                # Markdown docs (overview + notebook guides)
+├── envs/                # Conda YAMLs (cpu.yml, gpu.yml, pymc.yml)
+├── scripts/             # Helper CLI scripts
+├── src/                 # Jupyter notebooks + utils
+└── .gitignore
+```
+
+##  Repository contents
 
 | Path / file                                                               | Purpose                                                    |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -57,26 +87,8 @@ conda activate scrnaseq-bayes
 | **GSE123025\_Single\_myeloid\_1922\_cells\_processed\_data.csv.gz**       | Example processed matrix                                   |
 
 *(Any large Zarr, `.h5ad`, or `.nc` artefacts should live in `results/` and be git-ignored.)*
-
 ---
-
-### Documentation map
-
-| Doc file | Synopsis |
-| -------- | -------- |
-| **`docs/00_overview.md`** | Problem statement & high-level flowchart |
-| **`docs/01_datasets.md`** | Description of raw GEO datasets & metadata |
-| **`docs/02_data_prep.md`** | Extraction → QC → Zarr chunking |
-| **`docs/03_model_spec.md`** | Full likelihood, priors & **DAG** |
-| **`docs/04_inference_workflow.md`** | ADVI settings, PyTensor flags |
-| **`docs/05_validation.md`** | ELBO, PPC, simulation recovery |
-| **`docs/06_results.md`** | Runtime, memory, key posterior plots |
-| **`docs/99_troubleshooting.md`** | lib64 clashes, KaTeX, Snakemake tips |
-
----
-
-
-## 4 Mathematical model (mini version)
+## Mathematical model (mini version)
 
 > See *Detailed Breakdown …Gene Expression\_.md* for full derivation and DAG.
 
@@ -114,20 +126,88 @@ $$
 
 ---
 
-## Results overview
+## Installation
 
-| Metric            | Value             |
-| ----------------- | ----------------- |
-| Cells × genes     | 186 224 × 39 241  |
-| Peak RAM          | 38 GB             |
-| Peak VRAM         | 5 GB (A40)        |
-| ELBO plateau      | ≈ 18 k iterations |
-| Held-out PPC RMSE | 0.14 ± 0.02       |
+```bash
+# clone
+git clone https://github.com/HarshiniR4/SCRNAseq_Bayesian_Inference.git
+cd SCRNAseq_Bayesian_Inference
 
-See `results/posterior.nc` (ArviZ-compatible) and the interactive **HTML dashboard** in `results/report.html`.
+# CPU env (≈ 3 h model fit)
+conda env create -f envs/cpu.yml
+conda activate scrna_nb
+
+# GPU env (CUDA 12 +, JAX)
+conda env create -f envs/gpu.yml
+conda activate scrna_nb
+export JAX_PLATFORM_NAME=gpu
+```
+---
+
+## Detailed Pipeline
+
+| Step               | Notebook                               | Highlights                                                                     |
+| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------ |
+| **1 Extraction**   | `extract_files.ipynb`                  | Streaming untar + gzip; gene‑ID harmonisation; writes per‑study `.h5ad`.       |
+| **2 Combine**      | `combine_adata.ipynb`                  | Two‑pass gene‑union; QC filters; 7× disk compression.                          |
+| **3 Bayesian Fit** | `neg_binom.ipynb`                      | Minibatch ADVI (512 cells × 3 000 HVGs); hierarchical priors; GPU‑accelerated. |
+| **4 SVI Demo**     | `Bayesian Inference for Anndata.ipynb` | Toy 1 k×500 subset; proof‑of‑concept SVI.                                      |
+
+Full notebook‑level documentation lives in **`docs/`**.
 
 ---
+
+## Data Management & Integrity
+
+* **Checksums** – MD5 sidecar files for every binary; `scripts/verify.sh` validates chain.
+* **Sparse HDF5** – `.h5ad` compressed with `gzip –4` (6 GB on disk).
+* **Backed mode** – Large matrices read with `backed='r'` to cap RAM.
+* **Deterministic seeds** – Logged to `logs/runinfo.yaml`.
+* **CI smoke‑test** – GitHub Action runs pipeline on mock dataset each push.
+
+---
+
+## Model Details
+
+* **Likelihood** – Negative‑Binomial with gene‑specific dispersion.
+* **Offsets** – log(library size) + log(gene length / 1 kb).
+* **Hierarchies** – non‑centred for gene (β₀, β₁) and cell (αᵢ) effects.
+* **Inference** – PyMC 5 ADVI, `CheckParametersConvergence(0.01)`.
+* **Diagnostics** – ELBO trace, posterior predictive check, ArviZ summary.
+
+---
+
+## Troubleshooting
+
+| Symptom             | Fix                                                |
+| ------------------- | -------------------------------------------------- |
+| `tarfile.ReadError` | Re‑download corrupt archive.                       |
+| Memory spike >8 GB  | Reduce HVG count or use backed mode.               |
+| ELBO plateau        | Lower learning rate (`adam_lr=5e‑4`).              |
+| CUDA not found      | Use `envs/cpu.yml` or install compatible CUDA ≥12. |
+
+---
+
+## Roadmap
+
+* Zero‑Inflated NB variant.
+* Batch‑aware random effects.
+* DVC‑based data tracking.
+* Gene‑set enrichment (fgsea) integration.
+
+---
+
+## Citation
+
+If you use this code, please cite the original GEO datasets (see `docs/datasets.md`) and:
+
+* Wolf et al., *SCANPY* (2018)
+* Salvatier et al., *PyMC* (2016)
+* Bürkner & Vehtari, Hierarchical NB for scRNA‑seq (2023)
+
+---
+
+## License
 
 Licensed under the **MIT License**—see [`LICENSE`](LICENSE).
 
----
