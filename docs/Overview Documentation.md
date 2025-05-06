@@ -64,11 +64,13 @@ $$
 $$
 
 
-**DAG:** 
-![DAG]()
+## DAG:
 
-**Workflow Pipeline**
-![]()
+![DAG](https://github.com/HarshiniR4/SCRNAseq_Bayesian_Inference/blob/main/images/Screenshot%202025-05-06%20120226.png)
+
+## Workflow Pipeline
+
+![](https://github.com/HarshiniR4/SCRNAseq_Bayesian_Inference/blob/main/images/Screenshot%202025-05-06%20120222.png)
 
 ---
 
